@@ -21,7 +21,31 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local VirtualUser = game:GetService("VirtualUser")
 
+-- Guaranteed LocalPlayer retrieval
 local LocalPlayer = Players.LocalPlayer
+if not LocalPlayer then
+    repeat
+        task.wait()
+        LocalPlayer = Players.LocalPlayer
+    until LocalPlayer
+end
+
+local function GetPlayer()
+    if not LocalPlayer or not LocalPlayer.Parent then
+        LocalPlayer = Players.LocalPlayer
+    end
+    return LocalPlayer
+end
+
+local function GetCharacter()
+    local lp = GetPlayer()
+    return lp and lp.Character
+end
+
+local function GetRootPart()
+    local char = GetCharacter()
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
 
 -- Clean previous instances & stop previous threads
 if _G.AntiHubThreads then
@@ -38,7 +62,7 @@ end
 
 -- Ensure clean character physics state immediately
 pcall(function()
-    local char = LocalPlayer.Character
+    local char = GetCharacter()
     if char then
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then hum.PlatformStand = false end
@@ -81,14 +105,15 @@ local function GetSafeGuiParent()
         if ok then return CoreGui end
     end
 
-    local lp = Players.LocalPlayer or Players.PlayerAdded:Wait()
-    return lp:WaitForChild("PlayerGui", 10)
+    local lp = GetPlayer()
+    return lp and lp:WaitForChild("PlayerGui", 10)
 end
 
 local ScreenParent = GetSafeGuiParent()
 
 local function CleanAllExistingUIs()
-    local targets = {CoreGui, CoreGui:FindFirstChild("RobloxGui"), LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")}
+    local lp = GetPlayer()
+    local targets = {CoreGui, CoreGui:FindFirstChild("RobloxGui"), lp and lp:FindFirstChild("PlayerGui")}
     if gethui then pcall(function() table.insert(targets, gethui()) end) end
     for _, parent in ipairs(targets) do
         if parent then
@@ -188,12 +213,11 @@ local CONFIG_FOLDER = "Antihub-Config"
 local CONFIG_FILE = CONFIG_FOLDER .. "/DQReborn_Config.json"
 
 local Config = {
-    Language = "TH", -- "TH" or "EN"
+    Language = "TH",
     CurrentTheme = "Royal Purple",
     TransparencyLevel = 0,
     MenuKeybind = Enum.KeyCode.RightControl,
     
-    -- Auto Farm / Dungeon
     AutoDungeon = false,
     AutoBestDungeon = false,
     AutoStartDungeon = false,
@@ -202,7 +226,6 @@ local Config = {
     IsHardcore = false,
     IsWaveDefense = false,
     
-    -- Combat & Movement
     AutoFarmMobs = false,
     WarpMode = "Teleport",
     TweenSpeed = 120,
@@ -214,12 +237,10 @@ local Config = {
     AutoChests = false,
     AutoReplay = true,
     
-    -- Stats & Items
     AutoEquipBestGear = false,
     AutoSpendPoints = false,
     SelectedStat = "physicalPower",
     
-    -- Settings / Farming & Safety
     AntiAFK = true,
     InfiniteJump = false,
     Noclip = false,
@@ -271,7 +292,6 @@ LoadConfig()
 
 local Locales = {
     TH = {
-        -- Nav
         Nav_Home = "หน้าหลัก",
         Nav_Farm = "ออโต้ฟาร์ม",
         Nav_Stats = "อุปกรณ์และสเตตัส",
@@ -279,7 +299,6 @@ local Locales = {
         Nav_Teleport = "วาร์ปสถานที่",
         Nav_Settings = "ตั้งค่า",
         
-        -- Home
         Sec_PlayerStatus = "สถานะผู้เล่น",
         Sec_QuickActions = "คำสั่งด่วน",
         Btn_StartDungeon = "เริ่มดันเจี้ยนที่เลือก",
@@ -293,7 +312,6 @@ local Locales = {
         Status_BestDungeon = "ดันเจี้ยนที่ดีที่สุด",
         Status_Lobby = "ล็อบบี้หลัก",
         
-        -- Auto Farm
         Sec_DungeonSelect = "เลือกดันเจี้ยนและระบบออโต้",
         Tog_AutoBestDungeon = "ออโต้เลือกลงดันที่ดีที่สุด",
         Drop_TargetDungeon = "เลือกดันเจี้ยน",
@@ -314,25 +332,21 @@ local Locales = {
         Tog_AutoAbilities = "กดสกิลอัตโนมัติ (Q/E)",
         Tog_AutoChests = "เก็บหีบสมบัติอัตโนมัติ",
         
-        -- Stats
         Sec_GearStats = "ชุดเกราะและสเตตัส",
         Tog_AutoEquipBestGear = "สวมใส่อุปกรณ์ที่ดีที่สุดอัตโนมัติ",
         Drop_TargetStat = "สเตตัสที่ต้องการอัป",
         Tog_AutoSpendPoints = "อัปแต้มสเตตัสอัตโนมัติ",
         
-        -- Player
         Sec_CharMod = "ปรับแต่งตัวละคร",
         Inp_WalkSpeed = "ความเร็วการเดิน",
         Inp_JumpPower = "พลังการกระโดด",
         
-        -- Teleport
         Sec_LobbyTeleports = "จุดวาร์ปในล็อบบี้",
         Btn_Spawn = "จุดเกิด (Spawn)",
         Btn_Blacksmith = "ช่างตีเหล็ก (Blacksmith)",
         Btn_DailyReward = "รับของขวัญรายวัน (Daily Rewards)",
         Btn_BossRaid = "บอสเรด (Boss Raid)",
         
-        -- Settings
         Sec_Safety = "ความปลอดภัยและระบบ",
         Tog_AntiAFK = "ป้องกันการตัดการเชื่อมต่อ (Anti-AFK)",
         Tog_InfiniteJump = "กระโดดได้ไม่จำกัด (Infinite Jump)",
@@ -348,7 +362,6 @@ local Locales = {
         Msg_Saved = "✓ บันทึกการตั้งค่าแล้ว!"
     },
     EN = {
-        -- Nav
         Nav_Home = "Home",
         Nav_Farm = "Auto Farm",
         Nav_Stats = "Stats & Items",
@@ -356,7 +369,6 @@ local Locales = {
         Nav_Teleport = "Teleport",
         Nav_Settings = "Settings",
         
-        -- Home
         Sec_PlayerStatus = "Player Status",
         Sec_QuickActions = "Quick Actions",
         Btn_StartDungeon = "Start Selected Dungeon",
@@ -370,7 +382,6 @@ local Locales = {
         Status_BestDungeon = "Best Dungeon",
         Status_Lobby = "Main Lobby",
         
-        -- Auto Farm
         Sec_DungeonSelect = "Dungeon Selection",
         Tog_AutoBestDungeon = "Auto Best Dungeon",
         Drop_TargetDungeon = "Target Dungeon",
@@ -391,25 +402,21 @@ local Locales = {
         Tog_AutoAbilities = "Auto Cast Abilities",
         Tog_AutoChests = "Auto Open Chests",
         
-        -- Stats
         Sec_GearStats = "Gear & Stats",
         Tog_AutoEquipBestGear = "Auto Equip Best Gear",
         Drop_TargetStat = "Target Stat",
         Tog_AutoSpendPoints = "Auto Spend Skill Points",
         
-        -- Player
         Sec_CharMod = "Character Modifications",
         Inp_WalkSpeed = "WalkSpeed",
         Inp_JumpPower = "JumpPower",
         
-        -- Teleport
         Sec_LobbyTeleports = "Lobby Teleports",
         Btn_Spawn = "Spawn",
         Btn_Blacksmith = "Blacksmith",
         Btn_DailyReward = "Daily Rewards",
         Btn_BossRaid = "Boss Raid",
         
-        -- Settings
         Sec_Safety = "Safety & Utilities",
         Tog_AntiAFK = "Anti-AFK",
         Tog_InfiniteJump = "Infinite Jump",
@@ -1487,11 +1494,11 @@ local function IsDungeonFinished()
     if bossRoom and bossRoom:FindFirstChild("dungeonFinished") and bossRoom.dungeonFinished.Value == true then
         return true
     end
-    if LocalPlayer.PlayerGui:FindFirstChild("completeGui") ~= nil then
-        return true
-    end
-    if LocalPlayer.PlayerGui:FindFirstChild("failedGui") ~= nil then
-        return true
+    local lp = GetPlayer()
+    if lp and lp:FindFirstChild("PlayerGui") then
+        if lp.PlayerGui:FindFirstChild("completeGui") ~= nil or lp.PlayerGui:FindFirstChild("failedGui") ~= nil then
+            return true
+        end
     end
     return false
 end
@@ -1505,7 +1512,8 @@ local function StartDungeonIfWaiting()
         local startDungeon = ReplicatedStorage:FindFirstChild("remotes") and ReplicatedStorage.remotes:FindFirstChild("startDungeon")
         if startDungeon then startDungeon:FireServer() end
         
-        local startBtn = LocalPlayer.PlayerGui:FindFirstChild("startButton")
+        local lp = GetPlayer()
+        local startBtn = lp and lp:FindFirstChild("PlayerGui") and lp.PlayerGui:FindFirstChild("startButton")
         if startBtn then
             for _, b in ipairs(startBtn:GetDescendants()) do
                 if b:IsA("GuiButton") then
@@ -1518,15 +1526,6 @@ local function StartDungeonIfWaiting()
             end
         end
     end)
-end
-
-local function GetCharacter()
-    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-end
-
-local function GetRootPart()
-    local char = GetCharacter()
-    return char and char:FindFirstChild("HumanoidRootPart")
 end
 
 -- ══════════════════════════════════════════════════════════════════
@@ -1543,7 +1542,8 @@ local function EquipBestGear()
         local invy = reloadInvy:InvokeServer()
         if not invy or type(invy) ~= "table" then return end
 
-        local playerLevel = LocalPlayer:FindFirstChild("leaderstats") and LocalPlayer.leaderstats:FindFirstChild("Level") and LocalPlayer.leaderstats.Level.Value or 1
+        local lp = GetPlayer()
+        local playerLevel = lp and lp:FindFirstChild("leaderstats") and lp.leaderstats:FindFirstChild("Level") and lp.leaderstats.Level.Value or 1
 
         -- 1. Weapons: Highest (physicalPower + spellPower)
         if invy.weapons then
@@ -1733,7 +1733,7 @@ local function StopMovement()
         pcall(function() currentWarpTween:Cancel() end)
         currentWarpTween = nil
     end
-    local char = LocalPlayer.Character
+    local char = GetCharacter()
     if char and char:FindFirstChild("Humanoid") then
         char.Humanoid.PlatformStand = false
     end
@@ -1747,7 +1747,7 @@ end
 local function MoveToTarget(targetCF)
     if not Config.AutoFarmMobs and not Config.AutoChests then return end
     local hrp = GetRootPart()
-    local char = LocalPlayer.Character
+    local char = GetCharacter()
     if not hrp or not char then return end
     
     hrp.AssemblyLinearVelocity = Vector3.zero
@@ -1776,7 +1776,7 @@ end
 
 local function AttackWeapon(targetHRP)
     if not Config.AutoFarmMobs then return end
-    local char = LocalPlayer.Character
+    local char = GetCharacter()
     if not char then return end
     
     local myHRP = char:FindFirstChild("HumanoidRootPart")
@@ -1812,7 +1812,7 @@ end
 
 local function CastAbilities(targetHRP)
     if not Config.AutoFarmMobs or not Config.AutoAbilities then return end
-    local char = LocalPlayer.Character
+    local char = GetCharacter()
     if not char then return end
     
     local myHRP = char:FindFirstChild("HumanoidRootPart")
@@ -1820,7 +1820,8 @@ local function CastAbilities(targetHRP)
         myHRP.CFrame = CFrame.lookAt(myHRP.Position, targetHRP.Position)
     end
     
-    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    local lp = GetPlayer()
+    local backpack = lp and lp:FindFirstChild("Backpack")
     local abilityUsed = ReplicatedStorage:FindFirstChild("remotes") and ReplicatedStorage.remotes:FindFirstChild("abilityUsed")
     
     local function CastSlot(tool, slotName)
@@ -1892,16 +1893,17 @@ table.insert(ThemeElements.TextPrimaries, StatusText)
 RegisterThread(task.spawn(function()
     while task.wait(1) do
         pcall(function()
-            local level = LocalPlayer:FindFirstChild("leaderstats") and LocalPlayer.leaderstats:FindFirstChild("Level") and LocalPlayer.leaderstats.Level.Value or 1
-            local gold = LocalPlayer:FindFirstChild("leaderstats") and LocalPlayer.leaderstats:FindFirstChild("Gold") and LocalPlayer.leaderstats.Gold.Value or 0
-            local gems = LocalPlayer:FindFirstChild("leaderstats") and LocalPlayer.leaderstats:FindFirstChild("Gems") and LocalPlayer.leaderstats.Gems.Value or 0
+            local lp = GetPlayer()
+            local level = lp and lp:FindFirstChild("leaderstats") and lp.leaderstats:FindFirstChild("Level") and lp.leaderstats.Level.Value or 1
+            local gold = lp and lp:FindFirstChild("leaderstats") and lp.leaderstats:FindFirstChild("Gold") and lp.leaderstats.Gold.Value or 0
+            local gems = lp and lp:FindFirstChild("leaderstats") and lp.leaderstats:FindFirstChild("Gems") and lp.leaderstats.Gems.Value or 0
             local inDungeon = IsInDungeon()
             local mapState = inDungeon and ("Dungeon: " .. (Workspace:FindFirstChild("dungeonName") and Workspace.dungeonName.Value or "Level")) or T("Status_Lobby")
             local enemiesCount = #GetAllActiveEnemies()
             local bestD, bestDiff, bestReq = GetBestDungeonForLevel(level)
             
             StatusText.Text = string.format("%s: %s\n%s: %d | %s: %s | %s: %s\n%s: %s | %s: %d\n%s: %s (%s - Lv. %d+)",
-                T("Status_Player"), LocalPlayer.Name,
+                T("Status_Player"), lp and lp.Name or "Player",
                 T("Status_Level"), level,
                 T("Status_Gold"), tostring(gold),
                 T("Status_Gems"), tostring(gems),
@@ -1918,7 +1920,8 @@ CreateActionButton(HomeTab, "Btn_StartDungeon", function()
         local createLobby = ReplicatedStorage.remotes:FindFirstChild("createLobby")
         local startDungeon = ReplicatedStorage.remotes:FindFirstChild("startDungeon")
         if createLobby and startDungeon then
-            local pLevel = LocalPlayer:FindFirstChild("leaderstats") and LocalPlayer.leaderstats:FindFirstChild("Level") and LocalPlayer.leaderstats.Level.Value or 1
+            local lp = GetPlayer()
+            local pLevel = lp and lp:FindFirstChild("leaderstats") and lp.leaderstats:FindFirstChild("Level") and lp.leaderstats.Level.Value or 1
             local tDungeon, tDifficulty = Config.SelectedDungeon, Config.SelectedDifficulty
             
             if Config.AutoBestDungeon then
@@ -2062,7 +2065,7 @@ CreateSection(PlayerTab, "Sec_CharMod", 1)
 
 CreateNumberInput(PlayerTab, "Inp_WalkSpeed", 16, 300, Config.WalkSpeed or 16, " ws", function(val)
     Config.WalkSpeed = val
-    local char = LocalPlayer.Character
+    local char = GetCharacter()
     if char and char:FindFirstChild("Humanoid") then
         char.Humanoid.WalkSpeed = val
     end
@@ -2070,7 +2073,7 @@ end, 2)
 
 CreateNumberInput(PlayerTab, "Inp_JumpPower", 50, 400, Config.JumpPower or 50, " jp", function(val)
     Config.JumpPower = val
-    local char = LocalPlayer.Character
+    local char = GetCharacter()
     if char and char:FindFirstChild("Humanoid") then
         char.Humanoid.JumpPower = val
     end
@@ -2128,7 +2131,7 @@ end, 3)
 CreateToggle(SettingsTab, "Tog_Noclip", Config.Noclip, function(val)
     Config.Noclip = val
     if not val then
-        local char = LocalPlayer.Character
+        local char = GetCharacter()
         if char then
             for _, part in ipairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then part.CanCollide = true end
@@ -2186,31 +2189,41 @@ end, 11)
 
 -- 1. Noclip Loop (STRICT: Only runs when Noclip is toggled ON)
 RegisterThread(RunService.Stepped:Connect(function()
-    local char = LocalPlayer.Character
-    if char and Config.Noclip then
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
+    if not Config.Noclip then return end
+    pcall(function()
+        local char = GetCharacter()
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    part.CanCollide = false
+                end
             end
         end
-    end
+    end)
 end))
 
 -- 2. Infinite Jump
 UserInputService.JumpRequest:Connect(function()
     if Config.InfiniteJump then
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
+        pcall(function()
+            local char = GetCharacter()
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
     end
 end)
 
 -- 3. Clean Anti-AFK
-LocalPlayer.Idled:Connect(function()
-    if Config.AntiAFK then
-        pcall(function()
-            VirtualUser:CaptureController()
+pcall(function()
+    local lp = GetPlayer()
+    if lp then
+        lp.Idled:Connect(function()
+            if Config.AntiAFK then
+                pcall(function()
+                    VirtualUser:CaptureController()
+                end)
+            end
         end)
     end
 end)
@@ -2220,7 +2233,8 @@ RegisterThread(task.spawn(function()
     while task.wait(3) do
         if Config.AutoSpendPoints then
             pcall(function()
-                local points = LocalPlayer:FindFirstChild("skillPoints") and LocalPlayer.skillPoints.Value or 0
+                local lp = GetPlayer()
+                local points = lp and lp:FindFirstChild("skillPoints") and lp.skillPoints.Value or 0
                 local spendRem = ReplicatedStorage.remotes:FindFirstChild("spendSkillPoint")
                 if spendRem and points > 0 then
                     spendRem:FireServer(Config.SelectedStat, points)
@@ -2243,7 +2257,7 @@ RegisterThread(task.spawn(function()
         pcall(function()
             local inLobby = IsInLobby()
             local hrp = GetRootPart()
-            local char = LocalPlayer.Character
+            local char = GetCharacter()
             
             -- ==========================================================
             -- CASE A: INSIDE A DUNGEON
@@ -2280,7 +2294,8 @@ RegisterThread(task.spawn(function()
                             lastReplayAttempt = now
                             task.wait(5)
                             
-                            local pLevel = LocalPlayer:FindFirstChild("leaderstats") and LocalPlayer.leaderstats:FindFirstChild("Level") and LocalPlayer.leaderstats.Level.Value or 1
+                            local lp = GetPlayer()
+                            local pLevel = lp and lp:FindFirstChild("leaderstats") and lp.leaderstats:FindFirstChild("Level") and lp.leaderstats.Level.Value or 1
                             local bestD, bestDiff, bestReq = GetBestDungeonForLevel(pLevel)
                             
                             if Config.AutoBestDungeon and currentDungeonTierAtStart and (bestD ~= currentDungeonTierAtStart.Dungeon or bestDiff ~= currentDungeonTierAtStart.Difficulty) then
@@ -2302,7 +2317,8 @@ RegisterThread(task.spawn(function()
                 else
                     -- Dungeon in progress
                     if not currentDungeonTierAtStart then
-                        local pLevel = LocalPlayer:FindFirstChild("leaderstats") and LocalPlayer.leaderstats:FindFirstChild("Level") and LocalPlayer.leaderstats.Level.Value or 1
+                        local lp = GetPlayer()
+                        local pLevel = lp and lp:FindFirstChild("leaderstats") and lp.leaderstats:FindFirstChild("Level") and lp.leaderstats.Level.Value or 1
                         local bD, bDiff = GetBestDungeonForLevel(pLevel)
                         currentDungeonTierAtStart = {Dungeon = bD, Difficulty = bDiff}
                     end
@@ -2371,7 +2387,6 @@ RegisterThread(task.spawn(function()
                             if bv then bv:Destroy() end
                         end
                     else
-                        -- AutoFarmMobs is OFF: Guarantee 100% idle and no action!
                         StopMovement()
                     end
                 end
@@ -2386,15 +2401,16 @@ RegisterThread(task.spawn(function()
                 if Config.AutoDungeon or Config.AutoBestDungeon then
                     local now = tick()
                     if now - lastLobbyAttempt > 8 then
-                        local inGame = LocalPlayer:FindFirstChild("inGame") and LocalPlayer.inGame.Value or false
-                        local isTeleporting = LocalPlayer:FindFirstChild("teleporting") and LocalPlayer.teleporting.Value or false
+                        local lp = GetPlayer()
+                        local inGame = lp and lp:FindFirstChild("inGame") and lp.inGame.Value or false
+                        local isTeleporting = lp and lp:FindFirstChild("teleporting") and lp.teleporting.Value or false
                         
                         if not inGame and not isTeleporting then
                             lastLobbyAttempt = now
                             local createLobby = ReplicatedStorage.remotes:FindFirstChild("createLobby")
                             local startDungeon = ReplicatedStorage.remotes:FindFirstChild("startDungeon")
                             if createLobby and startDungeon then
-                                local pLevel = LocalPlayer:FindFirstChild("leaderstats") and LocalPlayer.leaderstats:FindFirstChild("Level") and LocalPlayer.leaderstats.Level.Value or 1
+                                local pLevel = lp and lp:FindFirstChild("leaderstats") and lp.leaderstats:FindFirstChild("Level") and lp.leaderstats.Level.Value or 1
                                 local targetDungeon, targetDifficulty
                                 
                                 if Config.AutoBestDungeon then
