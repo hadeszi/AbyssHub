@@ -668,7 +668,7 @@ local function MakeDraggable(dragPart, targetFrame)
     end)
 end
 
-local function MakeDraggableWidget(dragBtn, targetFrame, onClick)
+local function MakeDraggableWidget(dragBtn, targetFrame)
     local isDragging = false
     local dragInput, dragStart, startPos
     local hasMoved = false
@@ -679,15 +679,12 @@ local function MakeDraggableWidget(dragBtn, targetFrame, onClick)
             hasMoved = false
             dragStart = input.Position
             startPos = targetFrame.Position
+        end
+    end)
 
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    isDragging = false
-                    if not hasMoved and onClick then
-                        onClick()
-                    end
-                end
-            end)
+    dragBtn.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = false
         end
     end)
 
@@ -700,7 +697,7 @@ local function MakeDraggableWidget(dragBtn, targetFrame, onClick)
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and isDragging then
             local delta = input.Position - dragStart
-            if delta.Magnitude > 5 then
+            if delta.Magnitude > 3 then
                 hasMoved = true
             end
             targetFrame.Position = UDim2.new(
@@ -905,11 +902,27 @@ end
 
 MinButton.MouseButton1Click:Connect(MinimizeUI)
 CloseButton.MouseButton1Click:Connect(MinimizeUI)
-MakeDraggableWidget(FloatBtn, FloatingWidget, MaximizeUI)
+FloatBtn.MouseButton1Click:Connect(MaximizeUI)
+MakeDraggableWidget(FloatBtn, FloatingWidget)
 
+-- Keybind Listener (Strict: Only user-configured keyboard key, ignores other keys & clicks)
 UserInputService.InputBegan:Connect(function(input, processed)
-    if not processed and (input.KeyCode == Config.MenuKeybind or input.KeyCode == Enum.KeyCode.Insert) then
-        if MainFrame.Visible then MinimizeUI() else MaximizeUI() end
+    if not processed and input.UserInputType == Enum.UserInputType.Keyboard then
+        local configuredKey = Config.MenuKeybind
+        if typeof(configuredKey) == "string" then
+            configuredKey = Enum.KeyCode[configuredKey]
+        end
+        if not configuredKey then
+            configuredKey = Enum.KeyCode.RightControl
+        end
+        
+        if input.KeyCode == configuredKey and input.KeyCode ~= Enum.KeyCode.Unknown then
+            if MainFrame.Visible then
+                MinimizeUI()
+            else
+                MaximizeUI()
+            end
+        end
     end
 end)
 
